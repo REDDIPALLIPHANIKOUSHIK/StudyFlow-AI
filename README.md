@@ -49,7 +49,7 @@ For a complete beginner-friendly walkthrough of the architecture, features, data
 | Flashcards | Flip to reveal, previous/next/direct navigation, Got It/Didn't Know ratings, and progress counts |
 | Quiz and results | One question at a time, locked answer after selection, immediate correctness, explanation, score and percentage |
 | Weak topics and retry | Mistakes grouped by topic; retry includes only missed questions and uses no new AI call |
-| Request resilience | 30-second browser timeout, AbortController cancellation, request ID check against stale responses, friendly network/backend errors |
+| Request resilience | 90-second browser timeout, AbortController cancellation, request ID check against stale responses, friendly network/backend errors |
 | Session memory | Safe localStorage parsing/removal on corrupted data; restores the last set, ratings, and quiz answers |
 | API-key security | Key read only by Express from server `.env`; `.env` is Git-ignored; never use a `VITE_` key |
 | Responsive/accessibility | Responsive CSS, semantic buttons and labels, accessible control names, status announcements, and visible keyboard focus |
@@ -57,7 +57,7 @@ For a complete beginner-friendly walkthrough of the architecture, features, data
 ## How the data flow works
 
 1. The student enters notes in the React form. The frontend prevents blank, whitespace-only, too-short, and over-limit submissions without truncating the text.
-2. `src/api.ts` sends JSON to `POST /api/generate`. The browser aborts after 30 seconds and maps network/proxy failures to a helpful message.
+2. `src/api.ts` sends JSON to `POST /api/generate`. The browser aborts after 90 seconds and maps network/proxy failures to a helpful message.
 3. `server/index.ts` validates the request with Zod, reads the Gemini key from the server environment, and asks Gemini for JSON only.
 4. The server handles empty output, strips optional JSON code fences, parses the response as untrusted data, and validates it with `studySetSchema` before returning it.
 5. The frontend validates the response again. Only validated `StudySet` data enters React state and renders as interactive flashcards and quiz questions.
