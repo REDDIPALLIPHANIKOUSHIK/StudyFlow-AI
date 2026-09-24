@@ -1,69 +1,53 @@
 # StudyFlow AI
 
-**Turn any topic into an interactive study session.** Paste study notes or enter a topic; StudyFlow AI creates a structured study set with flashcards, a quiz, explanations, and topics to revisit.
+**Turn notes or a topic into a focused, interactive study session.** StudyFlow AI creates validated flashcards and a quiz with explanations. It is a study tool, not a chatbot: generated JSON is checked before the interface uses it.
 
-This is an interactive study tool, not a chatbot. The model's raw response is parsed and validated before any generated content reaches the interface.
+**Live app:** [studyflow-ai-m2jy.onrender.com](https://studyflow-ai-m2jy.onrender.com/)
 
-For a complete beginner-friendly walkthrough of the architecture, features, data contract, API flow, state, security, setup, and verification, see the [technical project report](docs/PROJECT_REPORT.md).
+## Assignment requirements
 
-## What you can do
-
-- Generate a study set from notes or a topic with Google Gemini.
-- Review one flashcard at a time, reveal its answer, mark **Got It** or **Didn't Know**, and see mastered/revisit counts.
-- Take a multiple-choice quiz with immediate correct/incorrect feedback and explanations.
-- Review the score, missed questions, and accuracy by topic.
-- Retry only missed quiz questions using the original questions; retry never calls Gemini again.
-- Continue the most recent session after a reload, including viewed/mastered/missed card progress and quiz answers.
-- Use the responsive layout on phone, tablet, and desktop.
-
-## Three novelty features
-
-1. **Weak Topic Detection** — quiz mistakes are grouped by each question's topic, sorted by mistakes, and shown with accuracy. This uses the quiz results already in memory; there is no second AI call.
-2. **Smart Retry Mode** — the retry set contains only questions answered incorrectly. The existing structured questions are reused, and the retry result reports its score separately.
-3. **Latest Session Memory** — the latest study set, timestamp, viewed/mastered/missed card IDs, and quiz answers are saved in browser `localStorage`. A Continue action restores the session; Start New clears it. No database or account is used.
-
-## Tech stack
-
-| Area | Technology | Use |
-| --- | --- | --- |
-| Frontend | React 18 | Interactive screens and local component state |
-| Language | TypeScript | Typed study data, requests, and UI state |
-| Build and development | Vite 6 | Frontend development server and production build |
-| Backend | Node.js, Express 4 | `POST /api/generate` and Gemini key isolation |
-| AI | Google GenAI JavaScript SDK (`@google/genai`) | Gemini structured JSON generation |
-| Default model | `gemini-3.5-flash` | Configurable through `GEMINI_MODEL` |
-| Runtime validation | Zod | Validate input, AI output, and restored local session data |
-| Icons and styling | lucide-react, CSS | Icons, responsive layout, focus states, and visual feedback |
-| Session persistence | Browser `localStorage` | Latest session only; no database |
-| HTTP | Browser `fetch` | Frontend-to-Express request |
-
-## Requirements and implementation
-
-| Assignment area | Implementation |
+| Core requirement | How StudyFlow implements it |
 | --- | --- |
-| Landing and input | Topic/notes textarea, character count, example prompts, disabled empty/too-long submit, loading and visible error states |
-| AI endpoint | Express `POST /api/generate`; validates 3–12,000 character input before calling Gemini |
-| Structured data | Title, summary, difficulty, 5–10 cards, and 5–10 quiz questions with four options, answer index, explanation, and topic |
-| Validation | Shared Zod study schema runs on the backend response and again in the browser; checks required non-empty fields, bounds, valid enums, answer index, four options, and unique IDs |
-| Safe parsing | Empty, fenced, malformed, or wrong-shape model output is rejected with a user-facing error; raw model text is never rendered |
-| Flashcards | Flip to reveal, previous/next/direct navigation, Got It/Didn't Know ratings, and progress counts |
-| Quiz and results | One question at a time, locked answer after selection, immediate correctness, explanation, score and percentage |
-| Weak topics and retry | Mistakes grouped by topic; retry includes only missed questions and uses no new AI call |
-| Request resilience | 90-second browser timeout, AbortController cancellation, request ID check against stale responses, friendly network/backend errors |
-| Session memory | Safe localStorage parsing/removal on corrupted data; restores the last set, ratings, and quiz answers |
-| API-key security | Key read only by Express from server `.env`; `.env` is Git-ignored; never use a `VITE_` key |
-| Responsive/accessibility | Responsive CSS, semantic buttons and labels, accessible control names, status announcements, and visible keyboard focus |
+| React hooks and functional components | React 18 with TypeScript; state drives the screens and interactions. |
+| Free-form input | Learners enter notes or a topic in a text area with a 12,000-character limit and example prompts. |
+| Real AI model, with key kept private | Express sends the request to Google Gemini. The API key is read on the server from `GEMINI_API_KEY`; it is never sent to the browser. |
+| Structured AI output, parsed before display | Gemini is asked for JSON matching the study-set contract. The server parses and validates it with Zod, and the browser validates the response again before rendering it. |
+| Interactive, stateful result | Learners reveal and rate flashcards, navigate the deck, answer multiple-choice questions, and see explanations and results. |
+| Defensive AI and network handling | Empty, malformed, or invalid model output is rejected. The app displays errors, supports retry, applies a request timeout, and ignores stale responses. |
+| Loading, error, and empty-input handling | The generate action has a loading state; input validation and backend/network failures have visible messages. |
+| Mobile layout | Responsive CSS adapts the layout and touch controls to smaller screens. |
+| README and local run instructions | Setup, stack, architecture, AI use, limitations, and run/build commands are documented below. |
 
-## How the data flow works
+## Novelty features
 
-1. The student enters notes in the React form. The frontend prevents blank, whitespace-only, too-short, and over-limit submissions without truncating the text.
-2. `src/api.ts` sends JSON to `POST /api/generate`. The browser aborts after 90 seconds and maps network/proxy failures to a helpful message.
-3. `server/index.ts` validates the request with Zod, reads the Gemini key from the server environment, and asks Gemini for JSON only.
-4. The server handles empty output, strips optional JSON code fences, parses the response as untrusted data, and validates it with `studySetSchema` before returning it.
-5. The frontend validates the response again. Only validated `StudySet` data enters React state and renders as interactive flashcards and quiz questions.
-6. Quiz answers are matched to the structured `correctAnswer` index. Results and topic accuracy are computed from these values, never from visible text.
+1. **Weak-topic detection** — quiz mistakes are grouped by topic and sorted by mistake count, with accuracy shown for topics to review. If there are no mistakes, the results say so. It uses existing quiz data and makes no extra AI request.
+2. **Smart retry mode** — the retry quiz contains only missed questions, reuses the original questions, and reports a separate retry score.
+3. **Latest-session memory** — the latest study set and learning progress are stored in browser `localStorage`. Learners can continue after reloading without creating an account or sending session history to a database.
 
-### Study set schema
+## Architecture
+
+```mermaid
+flowchart LR
+    Learner[Learner] -->|Notes or topic| UI[React + TypeScript UI]
+    UI -->|POST /api/generate| API[Express API]
+    API -->|Prompt + server-side key| Gemini[Google Gemini]
+    Gemini -->|JSON response| Parse[Parse and validate with Zod]
+    Parse -->|Valid study set| API
+    API -->|JSON response| UI
+    UI -->|Validated data| State[Flashcards, quiz, results]
+    State <--> Storage[(Browser localStorage)]
+```
+
+### Request and data flow
+
+1. The learner enters notes or a topic. The browser checks the input length and shows loading feedback.
+2. `src/api.ts` sends the text to `POST /api/generate`. An `AbortController` enforces a 90-second timeout, and a request ID prevents an older response from replacing a newer one.
+3. `server/index.ts` validates the request and calls Gemini using the server-only `GEMINI_API_KEY`.
+4. The server parses the model response and validates its shape with the shared Zod schema. Invalid or empty output becomes a clear error response; raw model text is never rendered.
+5. The browser validates the returned JSON again, then React renders the study set and computes quiz and topic results from its data.
+6. Session progress is saved locally in the browser. It is not sent to a StudyFlow database.
+
+### Study-set data contract
 
 ```ts
 type StudySet = {
@@ -76,21 +60,35 @@ type StudySet = {
     answer: string
     topic: string
     difficulty: 'easy' | 'medium' | 'hard'
-  }> // 5–10
+  }>
   quiz: Array<{
     id: string
     question: string
     options: [string, string, string, string]
-    correctAnswer: number // 0–3
+    correctAnswer: number
     explanation: string
     topic: string
-  }> // 5–10
+  }>
 }
 ```
 
-## Run locally (PowerShell)
+The Zod schema enforces non-empty fields, item counts, difficulty values, exactly four options, valid answer indexes, unique IDs, and distinct quiz questions.
 
-Requirements: Node.js 20+ and a Gemini API key.
+## Tech stack
+
+| Area | Technology | Role |
+| --- | --- | --- |
+| Frontend | React 18, TypeScript | Components, typed data, and interactive state |
+| Build tooling | Vite 6 | Local development and production build |
+| Backend | Node.js, Express 4 | API proxy and server-side secret handling |
+| AI | Google GenAI SDK (`@google/genai`), Gemini | Structured study-set generation |
+| Validation | Zod | Request, AI response, and saved-session validation |
+| UI | CSS, lucide-react | Responsive styling and icons |
+| Persistence | Browser `localStorage` | Save and restore the latest session |
+
+## Run locally
+
+Requirements: Node.js 20 or later and a Gemini API key.
 
 ```powershell
 git clone https://github.com/REDDIPALLIPHANIKOUSHIK/StudyFlow-AI.git
@@ -100,7 +98,7 @@ Copy-Item .env.example .env
 notepad .env
 ```
 
-Set the values in `.env`, save, then start both the API and frontend:
+Set the values in `.env` and save the file:
 
 ```env
 GEMINI_API_KEY=your_key_from_google_ai_studio
@@ -108,70 +106,68 @@ GEMINI_MODEL=gemini-3.5-flash
 PORT=3001
 ```
 
+Start the frontend and API together:
+
 ```powershell
 npm run dev
 ```
 
-Open the Vite URL printed in the terminal (normally `http://localhost:5173`). Keep the terminal open: `npm run dev` runs Vite and the Express API together. The API listens on port `3001` by default. If generation fails, check both process logs; a missing key produces a specific configuration message.
+Open the Vite URL printed in the terminal (normally `http://localhost:5173`). Keep the terminal open while using the app. Create or manage a Gemini key in [Google AI Studio](https://aistudio.google.com/app/apikey). Never commit `.env` or paste the key into frontend code; `.env` is ignored by Git.
 
-Create a key in [Google AI Studio](https://aistudio.google.com/app/apikey). Do not paste it into source code, browser variables, screenshots, or GitHub.
+## Commands
 
-## Deploy on Render
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Run the Vite frontend and Express API together for local development. |
+| `npm run build` | Type-check and build the frontend for production. |
+| `npm start` | Start the Express server; the deployed Render service uses this with the production build. |
 
-This repository includes `render.yaml`, which configures one Node web service to build the Vite frontend, run the Express API, serve the frontend, and check `/api/health`.
+## Configuration
 
-1. Sign in to [Render](https://render.com/) and choose **New + → Blueprint**.
-2. Connect `REDDIPALLIPHANIKOUSHIK/StudyFlow-AI` and apply the `render.yaml` blueprint.
-3. When Render requests `GEMINI_API_KEY`, enter the key from Google AI Studio as a secret environment variable. Do not commit the key or put it in a `VITE_` variable. `GEMINI_MODEL` is set by the blueprint; you can change it in the Render environment settings.
-4. Wait for the deploy to finish, then open the service URL. Check that `/api/health` returns `{"ok":true}` and try generating a study set.
-
-Render deploys linked GitHub repositories and keeps environment secrets in service settings. On Render's free plan, the service may spin down when idle, so the first request after inactivity can take longer.
-
-## Build and manual smoke check
-
-```powershell
-npm run build
-```
-
-There is no automated test script yet. After starting the app, manually check: empty and over-limit input; generation with a valid key; missing-key and unavailable-backend errors; card flip/rating/navigation; correct and incorrect quiz answers; score and topic results; retry with only missed questions; reload/Continue/Start New; and a narrow mobile viewport.
-
-## Environment variables
-
-| Name | Required | Default | Description |
+| Variable | Required | Default | Description |
 | --- | --- | --- | --- |
-| `GEMINI_API_KEY` | Yes for generation | — | Server-only API credential |
-| `GEMINI_MODEL` | No | `gemini-3.5-flash` | Gemini model ID |
-| `PORT` | No | `3001` | Express server port |
+| `GEMINI_API_KEY` | For generation | — | Server-side Gemini credential. |
+| `GEMINI_MODEL` | No | `gemini-3.5-flash` | Gemini model identifier. |
+| `PORT` | No | `3001` | Express server port. |
 
-The frontend build itself does not need the key. Live generation does. `.env` is ignored by Git.
-
-## Project structure
+## Project layout
 
 ```text
 src/
-  App.tsx       Screen flow, card and quiz behavior
-  api.ts        Fetch, network errors, frontend response validation
-  storage.ts    Safe latest-session load/save/clear helpers
-  types.ts      Zod data schema and TypeScript types
-  style.css     Responsive visual design and interaction states
+  App.tsx       Main screens and study interactions
+  api.ts        Browser request and response validation
+  storage.ts    Safe local-session persistence
+  types.ts      Zod schemas and TypeScript data types
+  style.css     Responsive design and interaction states
   main.tsx      React entry point
 server/
-  index.ts      Express validation, Gemini call, response parsing
-index.html      Vite document shell
-vite.config.ts  Vite setup and /api development proxy
-.env.example   Documented server configuration
+  index.ts      Express API, Gemini request, and server validation
+docs/
+  PROJECT_REPORT.md  Extended technical walkthrough
 ```
 
-## Security and data handling
+## Privacy and limitations
 
-- The Gemini key stays on the server and must not be prefixed with `VITE_`.
-- `.env`, `node_modules`, and build output are ignored by Git.
-- User notes are sent to the configured Gemini endpoint for generation. The app does not keep a server-side history; the latest study set and minimal progress are stored in that browser's local storage.
-- Do not enter sensitive personal information in study notes.
+- Notes are sent to Google Gemini to generate the study set. Do not submit sensitive personal information.
+- The Gemini key stays in the server environment. The app has no user accounts or server-side study history.
+- Only the latest session is saved, in the current browser's local storage; it does not sync between devices.
+- Generation requires network access and a valid Gemini API key. There is no mock-data fallback.
+- The project does not currently include an automated test suite; use the manual checks below and run the production build.
 
-## Current limitations
+## Manual verification
 
-- Session data is local to one browser and is not synchronized or backed up remotely.
-- Generation requires network access and a valid Gemini API key; the app intentionally has no mock-data fallback.
-- Automated unit/browser tests are not included. Use the manual smoke check above and run the production build before submitting changes.
+Run through these checks before a release or assessment demo:
+
+- Generate a set from a topic and from pasted notes; confirm a loading state and interactive cards appear.
+- Reveal, rate, and navigate flashcards; start the quiz and check both correct and incorrect feedback.
+- Finish with a missed answer and confirm only its topic is shown for review; retry and confirm only missed questions are included.
+- Finish with all correct answers and confirm the no-weak-topics message appears.
+- Reload and continue the saved session; check the input, missing-key, unavailable-backend, and timeout messages.
+- Check a narrow mobile viewport and run `npm run build`.
+
+## AI-use note and time spent
+
+Codex was used during development to assist with implementation troubleshooting, code refinements, and project documentation. The candidate should be prepared to explain the submitted code and verify that this note reflects all AI assistance used.
+
+**Time spent:** Replace this line with your actual total before submission.
 
