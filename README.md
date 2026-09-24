@@ -125,3 +125,8 @@ docs/
 - Generation requires network access and a valid Gemini API key.
 - The project does not include an automated test suite.
 
+## Development notes
+
+- **AI usage:** ChatGPT/Codex assisted with planning, troubleshooting, code review, and documentation. Suggestions were reviewed and adapted for this project.
+- **Time spent:** Approximately 6 hours.
+
