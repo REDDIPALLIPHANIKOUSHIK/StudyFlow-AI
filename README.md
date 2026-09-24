@@ -116,6 +116,17 @@ Open the Vite URL printed in the terminal (normally `http://localhost:5173`). Ke
 
 Create a key in [Google AI Studio](https://aistudio.google.com/app/apikey). Do not paste it into source code, browser variables, screenshots, or GitHub.
 
+## Deploy on Render
+
+This repository includes `render.yaml`, which configures one Node web service to build the Vite frontend, run the Express API, serve the frontend, and check `/api/health`.
+
+1. Sign in to [Render](https://render.com/) and choose **New + → Blueprint**.
+2. Connect `REDDIPALLIPHANIKOUSHIK/StudyFlow-AI` and apply the `render.yaml` blueprint.
+3. When Render requests `GEMINI_API_KEY`, enter the key from Google AI Studio as a secret environment variable. Do not commit the key or put it in a `VITE_` variable. `GEMINI_MODEL` is set by the blueprint; you can change it in the Render environment settings.
+4. Wait for the deploy to finish, then open the service URL. Check that `/api/health` returns `{"ok":true}` and try generating a study set.
+
+Render deploys linked GitHub repositories and keeps environment secrets in service settings. On Render's free plan, the service may spin down when idle, so the first request after inactivity can take longer.
+
 ## Build and manual smoke check
 
 ```powershell
