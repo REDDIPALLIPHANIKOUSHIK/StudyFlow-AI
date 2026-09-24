@@ -85,7 +85,7 @@ StudyFlow-AI/
 ## 6. AI request, step by step
 
 1. `HomeView` collects the student's notes. Its button is disabled unless the trimmed text is at least three characters and no more than 12,000 characters.
-2. `handleGenerate` starts an `AbortController`, assigns a monotonically increasing request ID, starts a 30-second timer, and shows loading state.
+2. `handleGenerate` starts an `AbortController`, assigns a monotonically increasing request ID, starts a 90-second timer to allow the Render free instance to wake, and shows loading state.
 3. `src/api.ts` sends `POST /api/generate` with `{ "input": "..." }` as JSON.
 4. `server/index.ts` validates the body with Zod. Invalid input gets HTTP 400. Missing `GEMINI_API_KEY` gets HTTP 503 with a configuration message.
 5. The server creates a `GoogleGenAI` client from the key in the server environment and calls `models.generateContent`. `GEMINI_MODEL` chooses the model; if unset, the server uses `gemini-3.5-flash`.
@@ -172,7 +172,7 @@ The saved object includes the study set, generation timestamp, viewed/mastered/m
 | Gemini network/service failure | Server logs a concise diagnostic and returns a generic safe message |
 | Empty model response | Server returns HTTP 502 with a retry message |
 | Malformed JSON or invalid schema | Server rejects the generated response with HTTP 502 |
-| Request takes more than 30 seconds | Browser aborts the fetch, shows a timeout message, and leaves the notes intact |
+| Request takes more than 90 seconds | Browser aborts the fetch, shows a timeout message, and leaves the notes intact |
 | User starts a new set or leaves while loading | Abort the prior browser request |
 | Old response arrives after a newer request | Request ID check stops it from changing state |
 | Corrupt or blocked localStorage | Remove corrupt data where possible or show a save warning; do not crash the screen |
@@ -267,5 +267,5 @@ npm run build
 - The live Gemini flow needs a student-provided API key; there is intentionally no mock response.
 - Automated tests are not present. A focused next improvement would be unit tests for `studySetSchema`, score calculation, topic aggregation, and retry selection, followed by a browser smoke test.
 - The browser request timeout does not forcibly stop remote Gemini processing already underway.
-- For a production deployment, the hosting setup must run Express securely, provide the API key as a server secret, and serve the built frontend or route it through a configured web host.
+- The application is deployed as a Render free web service at `https://studyflow-ai-m2jy.onrender.com`. Render supplies `GEMINI_API_KEY` as a server-side environment secret and Express serves the built frontend and `/api` routes from one origin. Free instances can sleep while idle, so the first request may be slower; the browser timeout allows 90 seconds.
 
