@@ -89,6 +89,7 @@ export default function App() {
       const nextSession: SavedSession = {
         studySet: generated,
         savedAt: Date.now(),
+        viewedCardIds: [generated.cards[0].id],
         knownCardIds: [],
         missedCardIds: [],
         answers: []
@@ -151,7 +152,8 @@ export default function App() {
     const missedCardIds = session.missedCardIds.filter(cardId => cardId !== id)
     if (known) knownCardIds.push(id)
     else missedCardIds.push(id)
-    persist({ ...session, knownCardIds, missedCardIds })
+    const viewedCardIds = session.viewedCardIds.includes(id) ? session.viewedCardIds : [...session.viewedCardIds, id]
+    persist({ ...session, viewedCardIds, knownCardIds, missedCardIds })
     setFlipped(false)
     if (cardIndex < session.studySet.cards.length - 1) setCardIndex(index => index + 1)
   }
@@ -193,7 +195,13 @@ export default function App() {
       {screen === 'study' && studySet && session && <StudyView
         session={session} cardIndex={cardIndex} flipped={flipped} error={error}
         onBack={() => setScreen('home')} onFlip={() => setFlipped(value => !value)}
-        onCard={index => { setCardIndex(index); setFlipped(false) }} onRate={rateCard}
+        onCard={index => {
+          setCardIndex(index)
+          setFlipped(false)
+          if (session && !session.viewedCardIds.includes(session.studySet.cards[index].id)) {
+            persist({ ...session, viewedCardIds: [...session.viewedCardIds, session.studySet.cards[index].id] })
+          }
+        }} onRate={rateCard}
         onQuiz={() => startQuiz(false)} onRetry={() => startQuiz(true)} onNew={startNewSet}
       />}
       {screen === 'quiz' && studySet && session && <QuizView
@@ -232,7 +240,7 @@ function HomeView({ input, setInput, error, busy, session, onGenerate, onContinu
       <div className="composer-bottom">
         <span id="input-count" aria-live="polite">{input.length.toLocaleString()} / {MAX_INPUT.toLocaleString()}</span>
         <button className="primary" onClick={onGenerate} disabled={input.trim().length < 3 || tooLong || busy}>
-          {busy ? <><span className="spinner" /> Building your set</> : <>Generate study set <ArrowUpRight size={16} /></>}
+          {busy ? <><span className="spinner" /> Building your set</> : <>{error ? 'Try again' : 'Generate study set'} <ArrowUpRight size={16} /></>}
         </button>
       </div>
       {tooLong && <div className="error" id="input-error" role="alert">Your input is too long. Please shorten it to 12,000 characters or fewer.</div>}
@@ -246,7 +254,7 @@ function HomeView({ input, setInput, error, busy, session, onGenerate, onContinu
     {session && <section className="resume">
       <span className="tile"><BookOpen size={18} /></span>
       <span><strong>Continue your last study session?</strong><small>{session.studySet.title} · saved {new Date(session.savedAt).toLocaleString()}</small></span>
-      <b><button onClick={onContinue}>Continue <ArrowRight size={15} /></button><button onClick={onNew}>Start New</button></b>
+      <div className="resume-actions"><button onClick={onContinue}>Continue <ArrowRight size={15} /></button><button onClick={onNew}>Start New</button></div>
     </section>}
     <div className="steps"><span><i>01</i> Add your notes</span><b /><span><i>02</i> Learn at your pace</span><b /><span><i>03</i> See what sticks</span></div>
   </>
@@ -282,7 +290,7 @@ function StudyView({ session, cardIndex, flipped, error, onBack, onFlip, onCard,
       <div>{set.cards.map((item, index) => <button aria-label={`Card ${index + 1}`} className={index === cardIndex ? 'on' : ''} key={item.id} onClick={() => onCard(index)} />)}</div>
       <button onClick={() => onCard((cardIndex + 1) % set.cards.length)} aria-label="Next card"><ChevronRight /></button>
     </div>
-    <p className="card-progress">Mastered {session.knownCardIds.length} · Revisit {session.missedCardIds.length}</p>
+    <p className="card-progress">Viewed {session.viewedCardIds.length} · Mastered {session.knownCardIds.length} · Revisit {session.missedCardIds.length}</p>
     <div className="quiz-banner"><span className="tile"><Brain /></span><div><strong>Ready to check your understanding?</strong><small>Take a quick quiz and find your strong spots.</small></div><button onClick={onQuiz}>Start quiz <ArrowRight size={15} /></button></div>
     {missedQuestions > 0 && <button className="secondary retry-study" onClick={onRetry}><RotateCcw size={15} /> Retry {missedQuestions} missed quiz question{missedQuestions === 1 ? '' : 's'}</button>}
     <button className="text-action" onClick={onNew}>Start a new study set <ArrowUpRight size={15} /></button>
@@ -326,6 +334,7 @@ function ResultsView({ studySet, topics, correctCount, scoreTotal, hasWrong, ret
       <div className="score" style={{ '--deg': `${percentage * 3.6}deg` } as CSSProperties}><div><strong>{percentage}<small>%</small></strong><small>YOUR SCORE</small></div></div>
       <div><div className="eyebrow"><b /> {retry ? 'RETRY COMPLETE' : 'SESSION COMPLETE'}</div><h2>{percentage >= 80 ? 'You’re finding your flow.' : 'Every answer is a step forward.'}</h2><p>You got <strong>{correctCount} of {scoreTotal}</strong> questions right on {studySet.title}.</p></div>
     </div>
+    <div className="result-counts"><div><Check size={16} /><strong>{correctCount}</strong><span>Correct</span></div><div><X size={16} /><strong>{scoreTotal - correctCount}</strong><span>Incorrect</span></div></div>
     <div className="section-head"><div><small>BASED ON YOUR ANSWERS</small><h3>Topics to revisit</h3></div></div>
     <div className="topic-list">{topics.map(topic => <div key={topic.topic}>
       <span className={topic.mistakes > 0 ? 'needs' : ''}>{topic.mistakes ? <Target size={15} /> : <Check size={15} />}</span>
