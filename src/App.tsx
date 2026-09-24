@@ -79,7 +79,8 @@ export default function App() {
     const timeoutId = window.setTimeout(() => {
       timedOut = true
       controller.abort()
-    }, 30_000)
+    // Render's free instance can take 50+ seconds to wake after inactivity.
+    }, 90_000)
 
     setBusy(true)
     setError('')
@@ -348,3 +349,4 @@ function ResultsView({ studySet, topics, correctCount, scoreTotal, hasWrong, ret
     </div>
   </section>
 }
+
