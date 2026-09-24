@@ -35,14 +35,19 @@ export default function App() {
     return retryMode ? studySet.quiz.filter(question => retryIds.includes(question.id)) : studySet.quiz
   }, [retryIds, retryMode, studySet])
 
+  const scoreQuestions = retryMode && retryIds.length > 0
+    ? studySet?.quiz.filter(question => retryIds.includes(question.id)) ?? []
+    : studySet?.quiz ?? []
   const topicResults = useMemo<TopicResult[]>(() => {
-    if (!studySet) return []
     const byTopic = new Map<string, { total: number; mistakes: number }>()
-    for (const question of studySet.quiz) {
+    for (const question of scoreQuestions) {
+      const answer = answers.find(item => item.questionId === question.id)
+      // Ignore questions that have not been answered in this attempt. In retry
+      // mode, the original correct answers are intentionally removed.
+      if (!answer) continue
       const result = byTopic.get(question.topic) ?? { total: 0, mistakes: 0 }
       result.total += 1
-      const answer = answers.find(item => item.questionId === question.id)
-      if (!answer || answer.selected !== question.correctAnswer) result.mistakes += 1
+      if (answer.selected !== question.correctAnswer) result.mistakes += 1
       byTopic.set(question.topic, result)
     }
     return [...byTopic].map(([topic, result]) => ({
@@ -50,11 +55,8 @@ export default function App() {
       ...result,
       accuracy: Math.round((result.total - result.mistakes) / result.total * 100)
     })).sort((a, b) => b.mistakes - a.mistakes || a.accuracy - b.accuracy)
-  }, [answers, studySet])
+  }, [answers, scoreQuestions])
 
-  const scoreQuestions = retryMode && retryIds.length > 0
-    ? studySet?.quiz.filter(question => retryIds.includes(question.id)) ?? []
-    : studySet?.quiz ?? []
   const correctCount = scoreQuestions.filter(question =>
     answers.some(answer => answer.questionId === question.id && answer.selected === question.correctAnswer)
   ).length
