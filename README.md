@@ -11,14 +11,14 @@ This is an interactive study tool, not a chatbot. The model's raw response is pa
 - Take a multiple-choice quiz with immediate correct/incorrect feedback and explanations.
 - Review the score, missed questions, and accuracy by topic.
 - Retry only missed quiz questions using the original questions; retry never calls Gemini again.
-- Continue the most recent session after a reload, including flashcard ratings and quiz answers.
+- Continue the most recent session after a reload, including viewed/mastered/missed card progress and quiz answers.
 - Use the responsive layout on phone, tablet, and desktop.
 
 ## Three novelty features
 
 1. **Weak Topic Detection** — quiz mistakes are grouped by each question's topic, sorted by mistakes, and shown with accuracy. This uses the quiz results already in memory; there is no second AI call.
 2. **Smart Retry Mode** — the retry set contains only questions answered incorrectly. The existing structured questions are reused, and the retry result reports its score separately.
-3. **Latest Session Memory** — the latest study set, timestamp, card ratings, and quiz answers are saved in browser `localStorage`. A Continue action restores the session; Start New clears it. No database or account is used.
+3. **Latest Session Memory** — the latest study set, timestamp, viewed/mastered/missed card IDs, and quiz answers are saved in browser `localStorage`. A Continue action restores the session; Start New clears it. No database or account is used.
 
 ## Tech stack
 
