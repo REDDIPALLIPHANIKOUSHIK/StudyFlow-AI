@@ -6,6 +6,7 @@ const answerSchema = z.object({ questionId: z.string(), selected: z.number().int
 const savedSessionSchema = z.object({
   studySet: studySetSchema,
   savedAt: z.number().finite(),
+  viewedCardIds: z.array(z.string()).default([]),
   knownCardIds: z.array(z.string()),
   missedCardIds: z.array(z.string()),
   answers: z.array(answerSchema)
