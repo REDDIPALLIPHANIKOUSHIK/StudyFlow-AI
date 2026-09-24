@@ -8,7 +8,8 @@
     "client": "vite --configLoader runner",
     "server": "tsx watch server/index.ts",
     "build": "tsc -b && vite build --configLoader runner",
-    "start": "tsx server/index.ts"
+    "start": "node scripts/start.mjs",
+    "start:prod": "tsx server/index.ts"
   },
   "dependencies": {
     "@google/genai": "^1.0.0",
