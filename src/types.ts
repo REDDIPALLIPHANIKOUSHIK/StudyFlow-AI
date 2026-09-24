@@ -1,0 +1,3 @@
+import{z}from'zod';
+export const schema=z.object({title:z.string().min(1).max(100),summary:z.string().min(1).max(600),difficulty:z.enum(['beginner','intermediate','advanced']),cards:z.array(z.object({id:z.string(),question:z.string().min(1),answer:z.string().min(1),topic:z.string().min(1),difficulty:z.enum(['easy','medium','hard'])})).min(3).max(12),quiz:z.array(z.object({id:z.string(),question:z.string().min(1),options:z.array(z.string().min(1)).length(4),correctAnswer:z.number().int().min(0).max(3),explanation:z.string().min(1),topic:z.string().min(1)})).min(5).max(12)});
+export type StudySet=z.infer<typeof schema>;export type Answer={questionId:string;selected:number};
