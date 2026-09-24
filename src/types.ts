@@ -30,6 +30,7 @@ export type Answer = { questionId: string; selected: number }
 export type SavedSession = {
   studySet: StudySet
   savedAt: number
+  viewedCardIds: string[]
   knownCardIds: string[]
   missedCardIds: string[]
   answers: Answer[]
