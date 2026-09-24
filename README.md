@@ -1,28 +1,24 @@
 # StudyFlow AI
 
-**Turn notes or a topic into a focused, interactive study session.** StudyFlow AI creates validated flashcards and a quiz with explanations. It is a study tool, not a chatbot: generated JSON is checked before the interface uses it.
+StudyFlow AI turns study notes or a topic into a focused learning session with interactive flashcards and a quiz. Generated content is validated structured data, rendered as a study interface rather than a chat conversation.
 
 **Live app:** [studyflow-ai-m2jy.onrender.com](https://studyflow-ai-m2jy.onrender.com/)
 
-## Assignment requirements
+## Features
 
-| Core requirement | How StudyFlow implements it |
-| --- | --- |
-| React hooks and functional components | React 18 with TypeScript; state drives the screens and interactions. |
-| Free-form input | Learners enter notes or a topic in a text area with a 12,000-character limit and example prompts. |
-| Real AI model, with key kept private | Express sends the request to Google Gemini. The API key is read on the server from `GEMINI_API_KEY`; it is never sent to the browser. |
-| Structured AI output, parsed before display | Gemini is asked for JSON matching the study-set contract. The server parses and validates it with Zod, and the browser validates the response again before rendering it. |
-| Interactive, stateful result | Learners reveal and rate flashcards, navigate the deck, answer multiple-choice questions, and see explanations and results. |
-| Defensive AI and network handling | Empty, malformed, or invalid model output is rejected. The app displays errors, supports retry, applies a request timeout, and ignores stale responses. |
-| Loading, error, and empty-input handling | The generate action has a loading state; input validation and backend/network failures have visible messages. |
-| Mobile layout | Responsive CSS adapts the layout and touch controls to smaller screens. |
-| README and local run instructions | Setup, stack, architecture, AI use, limitations, and run/build commands are documented below. |
+- Generate a structured study set from notes or a topic using Google Gemini.
+- Review flashcards one at a time, reveal answers, move through the deck, and mark cards as known or needing review.
+- Take a multiple-choice quiz with immediate feedback and explanations.
+- View a score and accuracy by topic; topics with mistakes are shown for review.
+- Retry only missed questions using the existing quiz data without another AI request.
+- Save the latest set and learning progress in browser `localStorage`, then continue after a reload.
+- Use the responsive interface on desktop, tablet, and mobile.
 
 ## Novelty features
 
-1. **Weak-topic detection** — quiz mistakes are grouped by topic and sorted by mistake count, with accuracy shown for topics to review. If there are no mistakes, the results say so. It uses existing quiz data and makes no extra AI request.
-2. **Smart retry mode** — the retry quiz contains only missed questions, reuses the original questions, and reports a separate retry score.
-3. **Latest-session memory** — the latest study set and learning progress are stored in browser `localStorage`. Learners can continue after reloading without creating an account or sending session history to a database.
+1. **Weak-topic detection:** groups quiz mistakes by topic, sorts topics by mistake count, and displays accuracy to help focus review.
+2. **Smart retry mode:** creates a retry quiz from only the missed questions and reports a separate retry score.
+3. **Latest-session memory:** saves the current study set and progress in the browser so a learner can resume without an account or server-side session database.
 
 ## Architecture
 
@@ -38,53 +34,32 @@ flowchart LR
     State <--> Storage[(Browser localStorage)]
 ```
 
-### Request and data flow
+### Request flow
 
-1. The learner enters notes or a topic. The browser checks the input length and shows loading feedback.
-2. `src/api.ts` sends the text to `POST /api/generate`. An `AbortController` enforces a 90-second timeout, and a request ID prevents an older response from replacing a newer one.
-3. `server/index.ts` validates the request and calls Gemini using the server-only `GEMINI_API_KEY`.
-4. The server parses the model response and validates its shape with the shared Zod schema. Invalid or empty output becomes a clear error response; raw model text is never rendered.
-5. The browser validates the returned JSON again, then React renders the study set and computes quiz and topic results from its data.
-6. Session progress is saved locally in the browser. It is not sent to a StudyFlow database.
+1. The learner enters notes or a topic in the React interface.
+2. `src/api.ts` sends the input to `POST /api/generate`.
+3. `server/index.ts` validates the input and calls Gemini with a server-side API key.
+4. The server parses and validates Gemini's JSON response with the shared Zod schema before returning it.
+5. The browser validates the response again. React renders the validated study set and computes quiz results from its structured data.
+6. Session progress is stored locally in the browser.
 
-### Study-set data contract
+## Study-set data
 
-```ts
-type StudySet = {
-  title: string
-  summary: string
-  difficulty: 'beginner' | 'intermediate' | 'advanced'
-  cards: Array<{
-    id: string
-    question: string
-    answer: string
-    topic: string
-    difficulty: 'easy' | 'medium' | 'hard'
-  }>
-  quiz: Array<{
-    id: string
-    question: string
-    options: [string, string, string, string]
-    correctAnswer: number
-    explanation: string
-    topic: string
-  }>
-}
-```
+Each generated study set contains a title, summary, and difficulty, plus flashcards and quiz questions. Cards include a question, answer, topic, and difficulty. Quiz questions include four answer choices, the correct choice index, an explanation, and a topic.
 
-The Zod schema enforces non-empty fields, item counts, difficulty values, exactly four options, valid answer indexes, unique IDs, and distinct quiz questions.
+The shared Zod schema checks required fields, item counts, difficulty values, answer indexes, exactly four quiz choices, unique IDs, and distinct quiz questions.
 
 ## Tech stack
 
-| Area | Technology | Role |
+| Area | Technology | Purpose |
 | --- | --- | --- |
-| Frontend | React 18, TypeScript | Components, typed data, and interactive state |
-| Build tooling | Vite 6 | Local development and production build |
-| Backend | Node.js, Express 4 | API proxy and server-side secret handling |
-| AI | Google GenAI SDK (`@google/genai`), Gemini | Structured study-set generation |
-| Validation | Zod | Request, AI response, and saved-session validation |
-| UI | CSS, lucide-react | Responsive styling and icons |
-| Persistence | Browser `localStorage` | Save and restore the latest session |
+| Frontend | React 18, TypeScript | Interface, typed data, and interactive state |
+| Build tooling | Vite 6 | Development server and production build |
+| Backend | Node.js, Express 4 | API endpoint and server-side AI requests |
+| AI | Google GenAI SDK (`@google/genai`), Gemini | Study-set generation |
+| Validation | Zod | Validate API input, model output, and saved sessions |
+| UI | CSS, lucide-react | Responsive design and icons |
+| Persistence | Browser `localStorage` | Save the latest study session |
 
 ## Run locally
 
@@ -98,7 +73,7 @@ Copy-Item .env.example .env
 notepad .env
 ```
 
-Set the values in `.env` and save the file:
+Set the following values in `.env`:
 
 ```env
 GEMINI_API_KEY=your_key_from_google_ai_studio
@@ -106,68 +81,47 @@ GEMINI_MODEL=gemini-3.5-flash
 PORT=3001
 ```
 
-Start the frontend and API together with the assignment's start command:
+Start the app:
 
 ```powershell
 npm start
 ```
 
-Open the Vite URL printed in the terminal (normally `http://localhost:5173`). Keep the terminal open while using the app. `npm start` runs the local Vite frontend and Express API together when `NODE_ENV` is not `production`; on Render it starts the production Express server, which serves the built frontend. Create or manage a Gemini key in [Google AI Studio](https://aistudio.google.com/app/apikey). Never commit `.env` or paste the key into frontend code; `.env` is ignored by Git.
+Open the Vite URL printed in the terminal, normally `http://localhost:5173`. `npm start` launches the Vite frontend and Express API in local development. In production, it starts the Express server that serves the built frontend.
 
-## Commands
-
-| Command | Purpose |
-| --- | --- |
-| `npm start` | Start the full local app; in production, start the Express server for the built app. |
-| `npm run dev` | Run the Vite frontend and Express API together for local development (same local mode as `npm start`). |
-| `npm run build` | Type-check and build the frontend for production. |
+Create or manage a Gemini API key in [Google AI Studio](https://aistudio.google.com/app/apikey). Keep the key in the server environment; do not add it to frontend code or commit `.env`.
 
 ## Configuration
 
 | Variable | Required | Default | Description |
 | --- | --- | --- | --- |
-| `GEMINI_API_KEY` | For generation | — | Server-side Gemini credential. |
-| `GEMINI_MODEL` | No | `gemini-3.5-flash` | Gemini model identifier. |
-| `PORT` | No | `3001` | Express server port. |
+| `GEMINI_API_KEY` | Yes for generation | — | Server-side Gemini API key |
+| `GEMINI_MODEL` | No | `gemini-3.5-flash` | Gemini model identifier |
+| `PORT` | No | `3001` | Express server port |
 
-## Project layout
+## Project structure
 
 ```text
 src/
-  App.tsx       Main screens and study interactions
-  api.ts        Browser request and response validation
+  App.tsx       Main screens and learning interactions
+  api.ts        Frontend API request and response validation
   storage.ts    Safe local-session persistence
   types.ts      Zod schemas and TypeScript data types
-  style.css     Responsive design and interaction states
+  style.css     Responsive layout and interaction styles
   main.tsx      React entry point
 server/
-  index.ts      Express API, Gemini request, and server validation
+  index.ts      Express API, Gemini request, and output validation
+scripts/
+  start.mjs     Select local development or production startup
 docs/
-  PROJECT_REPORT.md  Extended technical walkthrough
+  PROJECT_REPORT.md  Detailed technical walkthrough
 ```
 
 ## Privacy and limitations
 
-- Notes are sent to Google Gemini to generate the study set. Do not submit sensitive personal information.
-- The Gemini key stays in the server environment. The app has no user accounts or server-side study history.
-- Only the latest session is saved, in the current browser's local storage; it does not sync between devices.
-- Generation requires network access and a valid Gemini API key. There is no mock-data fallback.
-- The project does not currently include an automated test suite; use the manual checks below and run the production build.
-
-## Manual verification
-
-Run through these checks before a release or assessment demo:
-
-- Generate a set from a topic and from pasted notes; confirm a loading state and interactive cards appear.
-- Reveal, rate, and navigate flashcards; start the quiz and check both correct and incorrect feedback.
-- Finish with a missed answer and confirm only its topic is shown for review; retry and confirm only missed questions are included.
-- Finish with all correct answers and confirm the no-weak-topics message appears.
-- Reload and continue the saved session; check the input, missing-key, unavailable-backend, and timeout messages.
-- Check a narrow mobile viewport and run `npm run build`.
-
-## AI-use note and time spent
-
-Codex was used during development to assist with implementation troubleshooting, code refinements, and project documentation. The candidate should be prepared to explain the submitted code and verify that this note reflects all AI assistance used.
-
-**Time spent:** Replace this line with your actual total before submission.
+- Study notes are sent to Google Gemini to generate study content. Do not enter sensitive personal information.
+- The Gemini key stays on the server. StudyFlow has no user accounts or server-side study history.
+- Only the latest study session is saved, in the current browser's local storage. It does not sync between devices.
+- Generation requires network access and a valid Gemini API key.
+- The project does not include an automated test suite.
 
