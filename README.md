@@ -4,6 +4,8 @@
 
 This is an interactive study tool, not a chatbot. The model's raw response is parsed and validated before any generated content reaches the interface.
 
+For a complete beginner-friendly walkthrough of the architecture, features, data contract, API flow, state, security, setup, and verification, see the [technical project report](docs/PROJECT_REPORT.md).
+
 ## What you can do
 
 - Generate a study set from notes or a topic with Google Gemini.
@@ -161,3 +163,4 @@ vite.config.ts  Vite setup and /api development proxy
 - Session data is local to one browser and is not synchronized or backed up remotely.
 - Generation requires network access and a valid Gemini API key; the app intentionally has no mock-data fallback.
 - Automated unit/browser tests are not included. Use the manual smoke check above and run the production build before submitting changes.
+
