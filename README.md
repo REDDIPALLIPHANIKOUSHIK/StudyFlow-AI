@@ -106,21 +106,21 @@ GEMINI_MODEL=gemini-3.5-flash
 PORT=3001
 ```
 
-Start the frontend and API together:
+Start the frontend and API together with the assignment's start command:
 
 ```powershell
-npm run dev
+npm start
 ```
 
-Open the Vite URL printed in the terminal (normally `http://localhost:5173`). Keep the terminal open while using the app. Create or manage a Gemini key in [Google AI Studio](https://aistudio.google.com/app/apikey). Never commit `.env` or paste the key into frontend code; `.env` is ignored by Git.
+Open the Vite URL printed in the terminal (normally `http://localhost:5173`). Keep the terminal open while using the app. `npm start` runs the local Vite frontend and Express API together when `NODE_ENV` is not `production`; on Render it starts the production Express server, which serves the built frontend. Create or manage a Gemini key in [Google AI Studio](https://aistudio.google.com/app/apikey). Never commit `.env` or paste the key into frontend code; `.env` is ignored by Git.
 
 ## Commands
 
 | Command | Purpose |
 | --- | --- |
-| `npm run dev` | Run the Vite frontend and Express API together for local development. |
+| `npm start` | Start the full local app; in production, start the Express server for the built app. |
+| `npm run dev` | Run the Vite frontend and Express API together for local development (same local mode as `npm start`). |
 | `npm run build` | Type-check and build the frontend for production. |
-| `npm start` | Start the Express server; the deployed Render service uses this with the production build. |
 
 ## Configuration
 
