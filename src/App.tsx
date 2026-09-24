@@ -328,7 +328,8 @@ function ResultsView({ studySet, topics, correctCount, scoreTotal, hasWrong, ret
   studySet: StudySet; topics: TopicResult[]; correctCount: number; scoreTotal: number
   hasWrong: boolean; retry: boolean; onRetry: () => void; onStudy: () => void; onNew: () => void
 }) {
-  const percentage = scoreTotal ? Math.round(correctCount / scoreTotal * 100) : 0
+    const percentage = scoreTotal ? Math.round(correctCount / scoreTotal * 100) : 0
+    const topicsToReview = topics.filter(topic => topic.mistakes > 0)
   return <section className="workspace">
     <button className="back" onClick={onStudy}><ArrowLeft size={15} /> Study set</button>
     <div className="results-hero">
@@ -336,12 +337,14 @@ function ResultsView({ studySet, topics, correctCount, scoreTotal, hasWrong, ret
       <div><div className="eyebrow"><b /> {retry ? 'RETRY COMPLETE' : 'SESSION COMPLETE'}</div><h2>{percentage >= 80 ? 'You’re finding your flow.' : 'Every answer is a step forward.'}</h2><p>You got <strong>{correctCount} of {scoreTotal}</strong> questions right on {studySet.title}.</p></div>
     </div>
     <div className="result-counts"><div><Check size={16} /><strong>{correctCount}</strong><span>Correct</span></div><div><X size={16} /><strong>{scoreTotal - correctCount}</strong><span>Incorrect</span></div></div>
-    <div className="section-head"><div><small>BASED ON YOUR ANSWERS</small><h3>Topics to revisit</h3></div></div>
-    <div className="topic-list">{topics.map(topic => <div key={topic.topic}>
-      <span className={topic.mistakes > 0 ? 'needs' : ''}>{topic.mistakes ? <Target size={15} /> : <Check size={15} />}</span>
-      <strong>{topic.topic}<small>{topic.mistakes} mistake{topic.mistakes === 1 ? '' : 's'} · {topic.accuracy}% correct</small></strong>
-      <i><b style={{ width: `${topic.accuracy}%` }} /></i><em>{topic.accuracy}%</em>
-    </div>)}</div>
+      <div className="section-head"><div><small>BASED ON YOUR ANSWERS</small><h3>Topics to review</h3></div></div>
+      {topicsToReview.length === 0
+        ? <p className="success-note" role="status">No weak topics this round — all your answers were correct.</p>
+        : <div className="topic-list">{topicsToReview.map(topic => <div key={topic.topic}>
+        <span className={topic.mistakes > 0 ? 'needs' : ''}>{topic.mistakes ? <Target size={15} /> : <Check size={15} />}</span>
+        <strong>{topic.topic}<small>{topic.mistakes} mistake{topic.mistakes === 1 ? '' : 's'} · {topic.accuracy}% correct</small></strong>
+        <i><b style={{ width: `${topic.accuracy}%` }} /></i><em>{topic.accuracy}%</em>
+      </div>)}</div>}
     <div className="result-actions">
       {hasWrong && <button className="primary" onClick={onRetry}><RotateCcw size={15} /> Retry wrong answers <ArrowRight size={15} /></button>}
       <button className="secondary" onClick={onStudy}>Review flashcards <BookOpen size={15} /></button>
